@@ -1,22 +1,31 @@
 <?php
+header('Content-Type: application/json');
+include('config.php');
 
-include "koneksi.php";
+$data = json_decode(file_get_contents('php://input'), true);
 
-$email = $_POST['email'];
-$password = $_POST['password'];
+if (isset($data['email']) && isset($data['password'])) {
+    $name = $data['name'];
+    $email = $data['email'];
+    $password = $data['password'];
 
-$sql = "SELECT email FROM users WHERE email = '".$email."'";
+    $checkQuery = "SELECT * FROM users WHERE email = '$email'";
+    $checkResult = $conn->query($checkQuery);
 
-$result = mysqli_query($db,$sql);
-$count = mysqli_num_rows($result);
-
-if($count == 1){
-    echo json_encode("Error");
-}else{
-    $insert = "INSERT INTO users(email,password) VALUES ('".$email."','".$password."')";
-        $query = mysqli_query($db,$insert);
-        if($query){
-            echo json_encode("Success");
+    if ($checkResult->num_rows > 0) {
+        $response = array('status' => 'error', 'message' => 'Username already registered');
+    } else {
+        $insertQuery = "INSERT INTO users (name, email, password) VALUES ('$name', '$email', sha1('$password'))";
+        if ($conn->query($insertQuery) === TRUE) {
+            $response = array('status' => 'success', 'message' => 'Registration successful');
+        } else {
+            $response = array('status' => 'error', 'message' => 'Registration failed');
         }
+    }
+} else {
+    $response = array('status' => 'error', 'message' => 'Invalid request');
 }
+
+echo json_encode($response);
+$conn->close();
 ?>
